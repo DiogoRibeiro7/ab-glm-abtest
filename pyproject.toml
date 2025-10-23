@@ -15,7 +15,7 @@ statsmodels = "^0.14.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
-ruff = "^0.6.9"
+ruff = "^0.14.2"
 mypy = "^1.11"
 types-pytz = "^2025.1.0.0"
 
