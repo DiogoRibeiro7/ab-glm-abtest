@@ -10,6 +10,7 @@ dist/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+settings.local.json
 
 # Virtual envs
 .venv/

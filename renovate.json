@@ -1,0 +1,66 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":preserveSemverRanges",
+    "group:allNonMajor",
+    "schedule:weekends"
+  ],
+  "timezone": "UTC",
+  "schedule": ["every weekend"],
+  "labels": ["dependencies", "renovate"],
+  "assignees": ["DiogoRibeiro7"],
+  "reviewers": ["DiogoRibeiro7"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["major"],
+      "labels": ["major-update", "breaking-change"],
+      "automerge": false
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "labels": ["minor-update"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    },
+    {
+      "matchManagers": ["poetry"],
+      "rangeStrategy": "bump"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "labels": ["github-actions"],
+      "automerge": true
+    },
+    {
+      "matchPackageNames": ["numpy", "pandas", "statsmodels"],
+      "labels": ["core-dependencies"],
+      "automerge": false
+    },
+    {
+      "matchPackagePatterns": ["^pytest", "^mypy", "^ruff"],
+      "labels": ["dev-dependencies"],
+      "automerge": true
+    }
+  ],
+  "poetry": {
+    "enabled": true
+  },
+  "prConcurrentLimit": 3,
+  "prCreation": "not-pending",
+  "prHourlyLimit": 2,
+  "rebaseWhen": "auto",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "assignees": ["DiogoRibeiro7"],
+    "reviewers": ["DiogoRibeiro7"],
+    "automerge": false
+  },
+  "postUpdateOptions": ["poetryLockFileMaintenance"]
+}

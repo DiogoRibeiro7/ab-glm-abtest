@@ -14,7 +14,7 @@ All public functions include type hints, basic type checks, and concise docs.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Tuple, Optional
+from typing import Literal, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -93,7 +93,6 @@ def simulate_ab_data(
 
     rng = np.random.default_rng(seed)
 
-    user_id = np.arange(n_users)
     T_user = rng.integers(0, 2, size=n_users)  # treatment at user level (50/50)
 
     # Pre-treatment covariates
@@ -129,12 +128,12 @@ def simulate_ab_data(
     return df
 
 
-def _get_link(link: LinkName):
+def _get_link(link: LinkName) -> sm.families.links.Link:
     """Return statsmodels link object for the given name."""
     if link == "logit":
-        return sm.families.links.logit()
+        return sm.families.links.Logit()
     if link == "probit":
-        return sm.families.links.probit()
+        return sm.families.links.Probit()
     raise ValueError(f"Unsupported link: {link!r}.")
 
 
@@ -142,7 +141,7 @@ def fit_binomial_glm(
     df: pd.DataFrame,
     link: LinkName = "logit",
     cluster_col: str = "user_id",
-):
+) -> Tuple[sm.GLM, sm.GLM, pd.DataFrame, sm.genmod.generalized_linear_model.GLMResultsWrapper]:
     """Fit a Binomial GLM with treatment and covariates, cluster-robust SEs.
 
     Model: y ~ T + country_EU + device_mobile + prior_views
@@ -186,10 +185,10 @@ def fit_binomial_glm(
         family=sm.families.Binomial(link=_get_link(link)),
     )
 
-    res = glm.fit()
-    res_robust = res.get_robustcov_results(
+    # Fit with cluster-robust covariance
+    res_robust = glm.fit(
         cov_type="cluster",
-        groups=df_model[cluster_col].astype(int).to_numpy(),
+        cov_kwds={"groups": df_model[cluster_col].astype(int).to_numpy()}
     )
 
     return glm, glm, df_model, res_robust
@@ -198,7 +197,7 @@ def fit_binomial_glm(
 def marginal_effects_ate_and_rr(
     res_robust: sm.genmod.generalized_linear_model.GLMResultsWrapper,
     df_model: pd.DataFrame,
-):
+) -> Tuple[float, float, float, float]:
     """Compute covariate-adjusted ATE (RD) and risk ratio via marginal predictions."""
     df1 = df_model.copy()
     df0 = df_model.copy()
