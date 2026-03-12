@@ -24,6 +24,7 @@ import pandas as pd
 from tqdm import tqdm
 from joblib import Parallel, delayed, Memory
 import multiprocessing as mp
+from scipy import stats
 
 
 # Setup joblib cache directory
@@ -308,7 +309,7 @@ def parallel_heterogeneous_effects(
 
             # Z-test
             z_stat = effect / se if se > 0 else 0
-            p_value = 2 * (1 - np.abs(np.random.normal(0, 1, 10000) <= abs(z_stat)).mean())
+            p_value = 2 * (1 - stats.norm.cdf(abs(z_stat)))
 
             results.append({
                 'subgroup_variable': col,

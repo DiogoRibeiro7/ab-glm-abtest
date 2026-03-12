@@ -18,6 +18,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
+import statsmodels.formula.api as smf
 from scipy import stats
 from scipy.stats import jarque_bera, kstest, normaltest
 from sklearn.preprocessing import StandardScaler
@@ -331,18 +332,15 @@ def sensitivity_to_specification(
         }
 
     results = []
+    link_map = {
+        'logit': sm.families.links.Logit(),
+        'probit': sm.families.links.Probit(),
+    }
 
     for spec_name, covariates in specifications.items():
         try:
             # Prepare data for this specification
             df_spec = df.copy()
-
-            # Add interaction terms if specified
-            for cov in covariates:
-                if ':' in cov:
-                    var1, var2 = cov.split(':')
-                    if var1 in df.columns and var2 in df.columns:
-                        df_spec[cov] = df_spec[var1] * df_spec[var2]
 
             # Add quadratic terms if specified
             for cov in covariates:
@@ -354,7 +352,31 @@ def sensitivity_to_specification(
             # Fit models with different link functions
             for link in ['logit', 'probit']:
                 try:
-                    _, _, df_model, results_glm = fit_binomial_glm(df_spec, link)
+                    formula_terms = []
+                    for cov in covariates:
+                        if ":" in cov:
+                            var1, var2 = cov.split(":")
+                            if var1 in df_spec.columns and var2 in df_spec.columns:
+                                formula_terms.append(cov)
+                        elif cov in df_spec.columns:
+                            formula_terms.append(cov)
+
+                    formula = "y ~ T" if not formula_terms else f"y ~ T + {' + '.join(formula_terms)}"
+                    glm = smf.glm(
+                        formula=formula,
+                        data=df_spec,
+                        family=sm.families.Binomial(link=link_map[link]),
+                    )
+
+                    if "user_id" in df_spec.columns:
+                        results_glm = glm.fit(
+                            cov_type="cluster",
+                            cov_kwds={"groups": df_spec["user_id"].to_numpy()},
+                        )
+                    else:
+                        results_glm = glm.fit()
+
+                    df_model = results_glm.model.data.frame.copy()
                     ate, rr, _, _ = marginal_effects_ate_and_rr(results_glm, df_model)
 
                     results.append({
@@ -494,7 +516,7 @@ def placebo_test(
         ate_placebo, _, _, _ = marginal_effects_ate_and_rr(results_glm, df_model)
 
         # Get standard error
-        se_placebo = results_glm.bse[df_model.columns.get_loc('T')] if 'T' in df_model.columns else np.nan
+        se_placebo = float(results_glm.bse["T"]) if "T" in results_glm.bse.index else np.nan
 
         # Calculate p-value
         z_stat = ate_placebo / se_placebo if se_placebo > 0 else 0
