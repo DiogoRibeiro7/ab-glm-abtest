@@ -38,7 +38,7 @@ jobs:
         run: |
           pip install bandit safety
           bandit -r src/ -ll
-          poetry export -f requirements.txt --without-hashes | safety check --stdin || true
+          poetry export -f requirements.txt --without-hashes | safety check --stdin
 
   build:
     needs: test

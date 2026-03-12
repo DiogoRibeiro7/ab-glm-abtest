@@ -80,11 +80,11 @@ jobs:
 
     - name: Run ruff linter
       run: |
-        poetry run ruff check src/ tests/ scripts/ || true
+        poetry run ruff check src/ tests/ scripts/
 
     - name: Run ruff formatter check
       run: |
-        poetry run ruff format --check src/ tests/ || true
+        poetry run ruff format --check src/ tests/
 
   type-check:
     runs-on: ubuntu-latest
@@ -131,14 +131,14 @@ jobs:
 
     - name: Run bandit security linter
       run: |
-        bandit -r src/ -f json -o bandit-report.json || true
+        bandit -r src/ -f json -o bandit-report.json
         if [ -f bandit-report.json ]; then
           python -m json.tool bandit-report.json
         fi
 
     - name: Check for known vulnerabilities
       run: |
-        poetry export -f requirements.txt --without-hashes | safety check --stdin || true
+        poetry export -f requirements.txt --without-hashes | safety check --stdin
 
   docs:
     runs-on: ubuntu-latest
