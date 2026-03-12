@@ -187,7 +187,7 @@ jobs:
 
     - name: Run performance benchmarks
       run: |
-        poetry run python -m src.ab_glm.performance > benchmark_results.txt || echo "Benchmark completed"
+        poetry run python -m ab_glm.performance > benchmark_results.txt || echo "Benchmark completed"
         cat benchmark_results.txt
 
     - name: Comment PR with benchmark results
