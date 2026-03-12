@@ -235,7 +235,7 @@ for col in ['T', 'country_EU', 'device_mobile']:
 1. Remove problematic predictors:
    ```python
    # If device_mobile perfectly predicts outcome
-   glm, _, df_model, results = fit_binomial_glm(
+   glm, df_model, results = fit_binomial_glm(
        df[['user_id', 'T', 'country_EU', 'prior_views', 'y']],
        link="logit"
    )
@@ -270,7 +270,7 @@ ConvergenceWarning: Maximum iterations reached
 3. Try different link function:
    ```python
    # If logit fails, try probit
-   glm, _, df_model, results = fit_binomial_glm(df, link="probit")
+   glm, df_model, results = fit_binomial_glm(df, link="probit")
    ```
 
 ## Statistical Issues

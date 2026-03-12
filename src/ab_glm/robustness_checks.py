@@ -171,7 +171,7 @@ def robust_estimation_with_outliers(
         Robust estimation results
     """
     # Baseline estimate
-    baseline_family, baseline_link, df_model, results_baseline = fit_binomial_glm(df, link_name)
+    _, df_model, results_baseline = fit_binomial_glm(df, link_name)
     ate_baseline, _, _, _ = marginal_effects_ate_and_rr(results_baseline, df_model)
 
     robust_estimates = {}
@@ -184,7 +184,7 @@ def robust_estimation_with_outliers(
             df_clean = df[~outliers]
 
             # Refit model
-            _, _, df_model_clean, results_clean = fit_binomial_glm(df_clean, link_name)
+            _, df_model_clean, results_clean = fit_binomial_glm(df_clean, link_name)
             ate_clean, _, _, _ = marginal_effects_ate_and_rr(results_clean, df_model_clean)
 
             robust_estimates[f'ate_{method}'] = ate_clean
@@ -512,7 +512,7 @@ def placebo_test(
     df_placebo['y'] = df_placebo[placebo_outcome_col]
 
     try:
-        _, _, df_model, results_glm = fit_binomial_glm(df_placebo)
+        _, df_model, results_glm = fit_binomial_glm(df_placebo)
         ate_placebo, _, _, _ = marginal_effects_ate_and_rr(results_glm, df_model)
 
         # Get standard error
@@ -572,7 +572,7 @@ def complete_robustness_analysis(
     # 1. Baseline model
     print("1. Fitting baseline model...")
     try:
-        family, link, df_model, results_baseline = fit_binomial_glm(df, link_name)
+        _, df_model, results_baseline = fit_binomial_glm(df, link_name)
         ate_baseline, rr_baseline, _, _ = marginal_effects_ate_and_rr(results_baseline, df_model)
 
         results['baseline'] = {

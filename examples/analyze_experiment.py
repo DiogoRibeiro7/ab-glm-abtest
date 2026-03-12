@@ -96,7 +96,7 @@ def analyze_experiment(df, link="logit"):
 
     # Fit model
     print("\nFitting Binomial GLM with cluster-robust SEs...")
-    glm, _, df_model, results = fit_binomial_glm(df, link=link, cluster_col="user_id")
+    glm, df_model, results = fit_binomial_glm(df, link=link, cluster_col="user_id")
 
     # Extract coefficients
     print("\nModel Coefficients:")

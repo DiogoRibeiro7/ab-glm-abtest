@@ -16,7 +16,7 @@ This guide explains how to interpret the results from Binomial GLM analysis for 
 When you fit a Binomial GLM, you get several types of output:
 
 ```python
-glm, _, df_model, results = fit_binomial_glm(df, link="logit")
+glm, df_model, results = fit_binomial_glm(df, link="logit")
 ```
 
 ### Components:

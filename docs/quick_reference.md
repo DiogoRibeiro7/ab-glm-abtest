@@ -39,7 +39,7 @@ df = pd.read_csv('experiment_data.csv')
 assert df.groupby('user_id')['T'].nunique().max() == 1
 
 # 2. Fit model
-glm, _, df_model, results = fit_binomial_glm(df, link="logit")
+glm, df_model, results = fit_binomial_glm(df, link="logit")
 
 # 3. Get treatment effects
 ate, rr, p_treat, p_ctrl = marginal_effects_ate_and_rr(results, df_model)
@@ -89,7 +89,7 @@ print(balance)
 # Analyze by device type
 for device in [0, 1]:
     subset = df[df['device_mobile'] == device]
-    _, _, df_sub, res_sub = fit_binomial_glm(subset)
+    _, df_sub, res_sub = fit_binomial_glm(subset)
     ate_sub, _, _, _ = marginal_effects_ate_and_rr(res_sub, df_sub)
     print(f"Device={device}: ATE={ate_sub:.3f}")
 ```
@@ -97,11 +97,11 @@ for device in [0, 1]:
 ### Compare Link Functions
 ```python
 # Logit
-_, _, df_l, res_l = fit_binomial_glm(df, link="logit")
+_, df_l, res_l = fit_binomial_glm(df, link="logit")
 ate_l, rr_l, _, _ = marginal_effects_ate_and_rr(res_l, df_l)
 
 # Probit
-_, _, df_p, res_p = fit_binomial_glm(df, link="probit")
+_, df_p, res_p = fit_binomial_glm(df, link="probit")
 ate_p, rr_p, _, _ = marginal_effects_ate_and_rr(res_p, df_p)
 
 print(f"Logit ATE: {ate_l:.3f}, Probit ATE: {ate_p:.3f}")
@@ -243,7 +243,7 @@ assert df.groupby('user_id')['T'].nunique().max() == 1
 
 ### Full Analysis
 ```python
-glm, _, df_model, results = fit_binomial_glm(df)
+glm, df_model, results = fit_binomial_glm(df)
 ate, rr, p_t, p_c = marginal_effects_ate_and_rr(results, df_model)
 brier = brier_score(df_model['y'].values, results.predict(df_model))
 print(f"ATE: {ate:.3f}, RR: {rr:.3f}, Brier: {brier:.3f}")
