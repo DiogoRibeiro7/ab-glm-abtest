@@ -78,10 +78,6 @@ jobs:
       with:
         poetry-version: '2.3.2'
 
-    - name: Install Poetry export plugin
-      run: |
-        poetry self add poetry-plugin-export
-
     - name: Bind Poetry to Python 3.11
       run: |
         poetry env use 3.11
@@ -112,6 +108,10 @@ jobs:
       uses: abatilo/actions-poetry@v4
       with:
         poetry-version: '2.3.2'
+
+    - name: Install Poetry export plugin
+      run: |
+        poetry self add poetry-plugin-export
 
     - name: Bind Poetry to Python 3.11
       run: |
