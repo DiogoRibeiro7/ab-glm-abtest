@@ -20,6 +20,7 @@ import time
 import warnings
 from collections import OrderedDict
 from dataclasses import dataclass
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -229,8 +230,11 @@ class DiskCache:
     def _load_metadata(self) -> Dict[str, Any]:
         """Load cache metadata."""
         if self.metadata_file.exists():
-            with open(self.metadata_file, 'r') as f:
-                return json.load(f)
+            try:
+                with open(self.metadata_file, 'r') as f:
+                    return json.load(f)
+            except (JSONDecodeError, OSError):
+                return {}
         return {}
 
     def _save_metadata(self) -> None:
@@ -477,7 +481,7 @@ class MemoryPool:
         np.ndarray
             Array
         """
-        key = (shape, dtype)
+        key = (shape, np.dtype(dtype))
 
         if key in self.pool and self.pool[key]:
             return self.pool[key].pop()
@@ -493,7 +497,7 @@ class MemoryPool:
         array : np.ndarray
             Array to release
         """
-        key = (array.shape, array.dtype)
+        key = (array.shape, np.dtype(array.dtype))
 
         if key not in self.pool:
             self.pool[key] = []
@@ -538,7 +542,7 @@ def vectorize_operation(func: Callable) -> Callable:
 
 
 @vectorize_operation
-def fast_zscore(x: np.ndarray, ddof: int = 0) -> np.ndarray:
+def fast_zscore(x: np.ndarray, ddof: int = 1) -> np.ndarray:
     """
     Fast z-score normalization.
 

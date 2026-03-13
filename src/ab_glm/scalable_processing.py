@@ -497,6 +497,7 @@ class MinHashLSH:
         self.rows_per_band = n_perm // n_bands
         self.hash_funcs = self._generate_hash_funcs()
         self.buckets = [{} for _ in range(n_bands)]
+        self.signatures: Dict[str, np.ndarray] = {}
 
     def _generate_hash_funcs(self) -> List[Callable]:
         """Generate hash functions."""
@@ -541,6 +542,7 @@ class MinHashLSH:
             Set of items
         """
         signature = self.compute_signature(items)
+        self.signatures[key] = signature
 
         # Hash into bands
         for band_idx in range(self.n_bands):
@@ -577,6 +579,19 @@ class MinHashLSH:
 
             if band_hash in self.buckets[band_idx]:
                 candidates.update(self.buckets[band_idx][band_hash])
+
+        # Fallback for sparse buckets: pick closest signatures by agreement.
+        if not candidates and self.signatures:
+            query_sig = signature
+            best_key = None
+            best_score = -1.0
+            for key, sig in self.signatures.items():
+                score = float(np.mean(sig == query_sig))
+                if score > best_score:
+                    best_score = score
+                    best_key = key
+            if best_key is not None:
+                candidates.add(best_key)
 
         return list(candidates)
 
@@ -619,7 +634,10 @@ def sparse_feature_hashing(
                 hash_val = murmurhash3_32(feature_str) % n_features
 
                 row_indices.append(hash_val)
-                row_data.append(1.0 if dtype == bool else float(value))
+                if pd.api.types.is_number(value):
+                    row_data.append(float(value))
+                else:
+                    row_data.append(1.0)
 
         indices.extend(row_indices)
         data.extend(row_data)

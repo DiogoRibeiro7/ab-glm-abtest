@@ -347,7 +347,7 @@ def create_safe_summary(df: pd.DataFrame, include_samples: bool = False) -> Dict
         for col in df.columns[:5]:  # Limit to first 5 columns
             sample_values = df[col].dropna().iloc[:sample_size]
             summary['sample_hashes'][col] = [
-                hashlib.md5(str(val).encode()).hexdigest()[:8]
+                hashlib.sha256(str(val).encode()).hexdigest()[:8]
                 for val in sample_values
             ]
 
