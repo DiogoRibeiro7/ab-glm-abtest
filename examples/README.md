@@ -67,7 +67,7 @@ from ab_glm import (
 df = pd.read_csv('your_experiment.csv')
 
 # Fit GLM with cluster-robust SEs
-glm, _, df_model, results = fit_binomial_glm(
+glm, df_model, results = fit_binomial_glm(
     df,
     link="logit",
     cluster_col="user_id"

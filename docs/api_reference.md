@@ -58,7 +58,7 @@ fit_binomial_glm(
     df: pd.DataFrame,
     link: LinkName = "logit",
     cluster_col: str = "user_id"
-) -> Tuple[sm.GLM, sm.GLM, pd.DataFrame, GLMResultsWrapper]
+) -> Tuple[sm.GLM, pd.DataFrame, GLMResultsWrapper]
 ```
 
 **Parameters:**
@@ -67,11 +67,10 @@ fit_binomial_glm(
 - `cluster_col` (str): Column name for clustering (typically user ID)
 
 **Returns:**
-- `tuple`: Four elements:
+- `tuple`: Three elements:
   1. Unfitted GLM object (for reference)
-  2. Duplicate GLM object (for compatibility)
-  3. DataFrame used for modeling (after dropping NAs)
-  4. Fitted results with cluster-robust covariance
+  2. DataFrame used for modeling (after dropping NAs)
+  3. Fitted results with cluster-robust covariance
 
 **Required columns in df:**
 - `y`: Binary outcome (0/1)
@@ -91,7 +90,7 @@ y ~ T + country_EU + device_mobile + prior_views
 from ab_glm import fit_binomial_glm
 
 # Fit logit model with cluster-robust SEs
-glm, _, df_model, results = fit_binomial_glm(
+glm, df_model, results = fit_binomial_glm(
     df,
     link="logit",
     cluster_col="user_id"
@@ -363,7 +362,7 @@ assert set(df.columns) >= {'user_id', 'T', 'y', 'country_EU', 'device_mobile', '
 assert df.groupby('user_id')['T'].nunique().max() == 1, "Treatment varies within users!"
 
 # 3. Fit model
-glm, _, df_model, results = fit_binomial_glm(df, link="logit")
+glm, df_model, results = fit_binomial_glm(df, link="logit")
 
 # 4. Extract coefficients and significance
 print("\nModel Coefficients:")

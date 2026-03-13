@@ -60,7 +60,7 @@ docs:  ## Build documentation
 	fi
 
 benchmark:  ## Run performance benchmarks
-	poetry run python -m src.ab_glm.performance
+	poetry run python -m ab_glm.performance
 
 demo:  ## Run the demo script
 	poetry run python scripts/run_demo.py

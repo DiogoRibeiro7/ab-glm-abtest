@@ -24,12 +24,45 @@ import pandas as pd
 from tqdm import tqdm
 from joblib import Parallel, delayed, Memory
 import multiprocessing as mp
+from scipy import stats
 
 
 # Setup joblib cache directory
 CACHE_DIR = Path.home() / ".cache" / "ab_glm"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 memory = Memory(CACHE_DIR, verbose=0)
+
+
+def _is_picklable(obj: Any) -> bool:
+    """Return True if object can be pickled."""
+    try:
+        pickle.dumps(obj)
+        return True
+    except Exception:
+        return False
+
+
+def _bootstrap_worker(
+    data: pd.DataFrame,
+    statistic_func: Callable,
+    n_iterations: int,
+    seed: Optional[int],
+) -> List[float]:
+    """Top-level worker to support multiprocessing on Windows."""
+    rng = np.random.default_rng(seed)
+    n_samples = len(data)
+    results = []
+
+    for _ in range(n_iterations):
+        idx = rng.integers(0, n_samples, size=n_samples)
+        boot_data = data.iloc[idx]
+        try:
+            stat = statistic_func(boot_data)
+            results.append(stat)
+        except Exception:
+            continue
+
+    return results
 
 
 def get_optimal_n_jobs(n_tasks: int, max_workers: Optional[int] = None) -> int:
@@ -112,34 +145,22 @@ def parallel_bootstrap(
     observed = statistic_func(data)
 
     # Split bootstrap iterations across workers
-    iterations_per_worker = np.array_split(range(n_bootstrap), n_jobs)
+    iteration_chunks = np.array_split(range(n_bootstrap), n_jobs)
+    iterations_per_worker = [len(chunk) for chunk in iteration_chunks]
 
-    def bootstrap_worker(worker_iterations, seed):
-        """Worker function for bootstrap."""
-        if seed is not None:
-            np.random.seed(seed)
-
-        n_samples = len(data)
-        results = []
-
-        for _ in worker_iterations:
-            idx = np.random.choice(n_samples, size=n_samples, replace=True)
-            boot_data = data.iloc[idx]
-            try:
-                stat = statistic_func(boot_data)
-                results.append(stat)
-            except:
-                continue
-
-        return results
+    # On spawn-based platforms, non-picklable callables cannot use process pools.
+    use_process_pool = _is_picklable(statistic_func)
+    executor_cls = ProcessPoolExecutor if use_process_pool else ThreadPoolExecutor
 
     # Run parallel bootstrap
     if show_progress:
         print(f"Running parallel bootstrap with {n_jobs} workers...")
+        if not use_process_pool:
+            print("Using thread pool because statistic function is not picklable.")
 
-    with ProcessPoolExecutor(max_workers=n_jobs) as executor:
+    with executor_cls(max_workers=n_jobs) as executor:
         futures = [
-            executor.submit(bootstrap_worker, iters, seed)
+            executor.submit(_bootstrap_worker, data, statistic_func, iters, seed)
             for iters, seed in zip(iterations_per_worker, seeds)
         ]
 
@@ -308,7 +329,7 @@ def parallel_heterogeneous_effects(
 
             # Z-test
             z_stat = effect / se if se > 0 else 0
-            p_value = 2 * (1 - np.abs(np.random.normal(0, 1, 10000) <= abs(z_stat)).mean())
+            p_value = 2 * (1 - stats.norm.cdf(abs(z_stat)))
 
             results.append({
                 'subgroup_variable': col,

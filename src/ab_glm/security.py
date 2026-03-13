@@ -76,15 +76,23 @@ def validate_file_path(file_path: str, allowed_extensions: Optional[List[str]] =
     SecurityError
         If path is unsafe
     """
-    path = Path(file_path).resolve()
+    if not file_path:
+        raise SecurityError("File path cannot be empty.")
+    if "\x00" in file_path:
+        raise SecurityError("Null byte detected in file path.")
 
-    # Check for path traversal
-    if ".." in str(path):
+    raw_path = Path(file_path)
+
+    # Check for path traversal attempts before resolution.
+    if any(part == ".." for part in raw_path.parts):
         raise SecurityError(f"Path traversal detected in {file_path}")
+
+    path = raw_path.resolve(strict=False)
 
     # Check file extension
     if allowed_extensions:
-        if path.suffix.lower() not in [ext.lower() for ext in allowed_extensions]:
+        normalized_exts = [ext.lower() if ext.startswith(".") else f".{ext.lower()}" for ext in allowed_extensions]
+        if path.suffix.lower() not in normalized_exts:
             raise SecurityError(f"File extension {path.suffix} not allowed. Allowed: {allowed_extensions}")
 
     # Check if path is within working directory (optional, can be strict)
@@ -172,8 +180,8 @@ def hash_pii_columns(df: pd.DataFrame, columns: List[str], salt: Optional[str] =
     """
     df_copy = df.copy()
 
-    if salt is None:
-        salt = "default_salt_change_in_production"
+    if not salt:
+        raise SecurityError("A non-empty salt is required for hashing PII columns.")
 
     for col in columns:
         if col in df_copy.columns:
@@ -339,7 +347,7 @@ def create_safe_summary(df: pd.DataFrame, include_samples: bool = False) -> Dict
         for col in df.columns[:5]:  # Limit to first 5 columns
             sample_values = df[col].dropna().iloc[:sample_size]
             summary['sample_hashes'][col] = [
-                hashlib.md5(str(val).encode()).hexdigest()[:8]
+                hashlib.sha256(str(val).encode()).hexdigest()[:8]
                 for val in sample_values
             ]
 

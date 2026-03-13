@@ -144,7 +144,11 @@ try:
         "sensitivity_to_specification",
     ]
 
-except ImportError:
+except ModuleNotFoundError as exc:
+    # Do not hide internal package import errors.
+    if exc.name and exc.name.startswith("ab_glm"):
+        raise
+
     # If enhanced modules fail to import (missing dependencies),
     # just export core functions
     __all__ = [

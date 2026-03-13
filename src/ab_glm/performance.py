@@ -151,7 +151,7 @@ def benchmark_model_fitting(sizes: List[int]) -> pd.DataFrame:
             start = time.perf_counter()
 
             # Fit model
-            _, _, df_model, results_glm = fit_binomial_glm(df)
+            _, df_model, results_glm = fit_binomial_glm(df)
 
             # Calculate effects
             ate, rr, _, _ = marginal_effects_ate_and_rr(results_glm, df_model)
@@ -281,7 +281,7 @@ def test_scalability(
             mem_before = process.memory_info().rss / 1024 / 1024
 
             start_fit = time.perf_counter()
-            _, _, df_model, results_glm = fit_binomial_glm(df)
+            _, df_model, results_glm = fit_binomial_glm(df)
             ate, rr, _, _ = marginal_effects_ate_and_rr(results_glm, df_model)
             fit_time = time.perf_counter() - start_fit
 

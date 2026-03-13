@@ -24,12 +24,9 @@ import statsmodels.formula.api as smf
 from scipy import stats
 from tqdm import tqdm
 
-# Configure logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
 logger = logging.getLogger(__name__)
+if not logger.handlers:
+    logger.addHandler(logging.NullHandler())
 
 LinkName = Literal["logit", "probit", "cloglog"]
 
@@ -150,7 +147,6 @@ def validate_data(
     warnings : List[str]
         List of warnings encountered
     """
-    logger.info(f"Validating data with {len(df)} rows and {df[cluster_col].nunique()} clusters")
     warnings_list = []
 
     # Check for required columns
@@ -166,6 +162,11 @@ def validate_data(
             raise DataValidationError(msg)
         warnings_list.append(msg)
         logger.warning(msg)
+        # Continue with available columns when strict=False
+        required_cols = [c for c in required_cols if c in df.columns]
+
+    n_clusters = df[cluster_col].nunique() if cluster_col in df.columns else 0
+    logger.info(f"Validating data with {len(df)} rows and {n_clusters} clusters")
 
     # Check for missing values
     na_counts = df[required_cols].isnull().sum()
@@ -386,7 +387,8 @@ def calculate_confidence_intervals(
     df_model: pd.DataFrame,
     alpha: float = 0.05,
     method: str = "delta",
-    n_bootstrap: int = 1000
+    n_bootstrap: int = 1000,
+    cluster_col: str = "user_id",
 ) -> Dict[str, Tuple[float, float]]:
     """
     Calculate confidence intervals for treatment effects.
@@ -403,6 +405,8 @@ def calculate_confidence_intervals(
         Method for CI calculation ("delta" or "bootstrap")
     n_bootstrap : int
         Number of bootstrap iterations if method="bootstrap"
+    cluster_col : str
+        Cluster identifier column for cluster bootstrap.
 
     Returns
     -------
@@ -442,17 +446,22 @@ def calculate_confidence_intervals(
     elif method == "bootstrap":
         # Bootstrap confidence intervals
         logger.info(f"Running {n_bootstrap} bootstrap iterations...")
+        if cluster_col not in df_model.columns:
+            raise ValueError(
+                f"Cluster column '{cluster_col}' not found in df_model for bootstrap CI."
+            )
+
         ate_samples = []
         rr_samples = []
+        clusters = df_model[cluster_col].unique()
 
         for _ in tqdm(range(n_bootstrap), disable=not logger.isEnabledFor(logging.DEBUG)):
             # Resample clusters
-            clusters = df_model[results.model.groups_name].unique()
             sampled_clusters = np.random.choice(clusters, size=len(clusters), replace=True)
 
             # Create bootstrap sample
             df_boot = pd.concat([
-                df_model[df_model[results.model.groups_name] == c]
+                df_model[df_model[cluster_col] == c]
                 for c in sampled_clusters
             ])
 
@@ -463,7 +472,10 @@ def calculate_confidence_intervals(
                     data=df_boot,
                     family=results.model.family
                 )
-                res_boot = glm_boot.fit()
+                res_boot = glm_boot.fit(
+                    cov_type="cluster",
+                    cov_kwds={"groups": df_boot[cluster_col].to_numpy()},
+                )
 
                 # Calculate metrics
                 df1 = df_boot.copy()
@@ -477,8 +489,13 @@ def calculate_confidence_intervals(
                 ate_samples.append(p1_boot - p0_boot)
                 rr_samples.append(p1_boot / p0_boot)
 
-            except:
+            except Exception:
                 continue
+
+        if not ate_samples or not rr_samples:
+            raise ModelConvergenceError(
+                "Bootstrap CI failed: no successful bootstrap fits."
+            )
 
         # Calculate percentile CIs
         ate_ci = (np.percentile(ate_samples, alpha/2 * 100),
@@ -560,6 +577,7 @@ def calculate_additional_metrics(
 def run_enhanced_pipeline(
     df: Optional[pd.DataFrame] = None,
     link: LinkName = "logit",
+    cluster_col: str = "user_id",
     n_users: int = 4000,
     sessions_per_user: Tuple[int, int] = (1, 5),
     seed: int = 42,
@@ -577,6 +595,8 @@ def run_enhanced_pipeline(
         Input data. If None, simulated data is generated
     link : LinkName
         Link function to use
+    cluster_col : str
+        Cluster identifier column for robust covariance and summaries.
     n_users : int
         Number of users for simulation (if df is None)
     sessions_per_user : Tuple[int, int]
@@ -614,6 +634,7 @@ def run_enhanced_pipeline(
     glm, df_model, results, diagnostics = fit_binomial_glm_enhanced(
         df,
         link=link,
+        cluster_col=cluster_col,
         validate=validate,
         progress_bar=verbose
     )
@@ -628,7 +649,9 @@ def run_enhanced_pipeline(
 
     # Calculate confidence intervals
     if calculate_cis:
-        cis = calculate_confidence_intervals(results, df_model, method=ci_method)
+        cis = calculate_confidence_intervals(
+            results, df_model, method=ci_method, cluster_col=cluster_col
+        )
         ate_ci = cis["ate"]
         rr_ci = cis["risk_ratio"]
     else:
@@ -651,7 +674,7 @@ def run_enhanced_pipeline(
         p_value = 1.0
 
     # Calculate covariate balance
-    user_df = df_model.groupby("user_id").first()
+    user_df = df_model.groupby(cluster_col).first()
     balance_stats = {}
 
     for cov in ["country_EU", "device_mobile", "prior_views"]:
@@ -661,7 +684,7 @@ def run_enhanced_pipeline(
             balance_stats[cov] = abs(treated_mean - control_mean)
 
     # Calculate sessions per user stats
-    sessions_stats = df_model.groupby("user_id").size()
+    sessions_stats = df_model.groupby(cluster_col).size()
 
     # Create results object
     results_obj = EnhancedABResults(
@@ -672,7 +695,7 @@ def run_enhanced_pipeline(
         p_control=p_ctrl,
         brier=brier,
         n_obs=len(df_model),
-        n_users=df_model["user_id"].nunique(),
+        n_users=df_model[cluster_col].nunique(),
         robust_se_treat=treat_se,
         coef_treat=treat_coef,
         ate_ci_lower=ate_ci[0],

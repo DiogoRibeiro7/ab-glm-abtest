@@ -117,9 +117,7 @@ def simulate_ab_data(
         p = 1.0 / (1.0 + np.exp(-eta_base))  # logistic to generate outcomes
         for _ in range(n_sessions):
             y = rng.binomial(1, p)
-            rows.append(
-                (i, T_user[i], country_EU[i], device_mobile[i], prior_views[i], y)
-            )
+            rows.append((i, T_user[i], country_EU[i], device_mobile[i], prior_views[i], y))
 
     df = pd.DataFrame(
         rows,
@@ -141,7 +139,7 @@ def fit_binomial_glm(
     df: pd.DataFrame,
     link: LinkName = "logit",
     cluster_col: str = "user_id",
-) -> Tuple[sm.GLM, sm.GLM, pd.DataFrame, sm.genmod.generalized_linear_model.GLMResultsWrapper]:
+) -> Tuple[sm.GLM, pd.DataFrame, sm.genmod.generalized_linear_model.GLMResultsWrapper]:
     """Fit a Binomial GLM with treatment and covariates, cluster-robust SEs.
 
     Model: y ~ T + country_EU + device_mobile + prior_views
@@ -158,9 +156,9 @@ def fit_binomial_glm(
 
     Returns
     -------
-    (glm, glm, df_model, res_robust)
-        Unfitted GLM (for reference), duplicate (for symmetry), the data used,
-        and the fitted results with cluster-robust covariance.
+    (glm, df_model, res_robust)
+        Unfitted GLM (for reference), the data used, and fitted results with
+        cluster-robust covariance.
     """
     required = {"y", "T", "country_EU", "device_mobile", "prior_views", cluster_col}
     missing = required - set(df.columns)
@@ -172,7 +170,9 @@ def fit_binomial_glm(
     if not set(pd.unique(df["y"])) <= {0, 1}:
         raise ValueError("'y' must be binary (0/1).")
 
-    used_cols = list(required)
+    used_cols = list(
+        dict.fromkeys(["y", "T", "country_EU", "device_mobile", "prior_views", cluster_col])
+    )
     df_model = df[used_cols].dropna(axis=0).copy()
     if df_model.empty:
         raise ValueError("No rows left after dropping NA in required columns.")
@@ -186,12 +186,9 @@ def fit_binomial_glm(
     )
 
     # Fit with cluster-robust covariance
-    res_robust = glm.fit(
-        cov_type="cluster",
-        cov_kwds={"groups": df_model[cluster_col].astype(int).to_numpy()}
-    )
+    res_robust = glm.fit(cov_type="cluster", cov_kwds={"groups": df_model[cluster_col].to_numpy()})
 
-    return glm, glm, df_model, res_robust
+    return glm, df_model, res_robust
 
 
 def marginal_effects_ate_and_rr(
@@ -233,7 +230,7 @@ def brier_score(y_true: np.ndarray, p_hat: np.ndarray) -> float:
 def run_pipeline(link: LinkName = "logit") -> ABResults:
     """Simulate data, fit GLM, compute ATE/RR, and summarize into ABResults."""
     df = simulate_ab_data()
-    _, _, df_model, res_robust = fit_binomial_glm(df, link=link, cluster_col="user_id")
+    _, df_model, res_robust = fit_binomial_glm(df, link=link, cluster_col="user_id")
 
     ate_rd, rr, p_treated, p_control = marginal_effects_ate_and_rr(res_robust, df_model)
 
