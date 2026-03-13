@@ -140,9 +140,7 @@ class TestFitBinomialGLM:
 
     def test_basic_fit_logit(self, sample_data):
         """Test basic GLM fitting with logit link."""
-        glm_unfitted, df_model, res_robust = fit_binomial_glm(
-            sample_data, link="logit"
-        )
+        glm_unfitted, df_model, res_robust = fit_binomial_glm(sample_data, link="logit")
 
         # Check return types
         assert isinstance(glm_unfitted, sm.GLM)
@@ -175,17 +173,13 @@ class TestFitBinomialGLM:
     def test_custom_cluster_column(self, sample_data):
         """Test fitting with custom cluster column."""
         sample_data["cluster_id"] = sample_data["user_id"]
-        _, df_model, res_robust = fit_binomial_glm(
-            sample_data, cluster_col="cluster_id"
-        )
+        _, df_model, res_robust = fit_binomial_glm(sample_data, cluster_col="cluster_id")
         assert "cluster_id" in df_model.columns
 
     def test_string_cluster_ids(self, sample_data):
         """Test fitting when cluster IDs are strings."""
         sample_data["cluster_id"] = sample_data["user_id"].astype(str).radd("u_")
-        _, df_model, res_robust = fit_binomial_glm(
-            sample_data, cluster_col="cluster_id"
-        )
+        _, df_model, res_robust = fit_binomial_glm(sample_data, cluster_col="cluster_id")
         assert "cluster_id" in df_model.columns
         assert hasattr(res_robust, "cov_params")
 
@@ -220,14 +214,16 @@ class TestFitBinomialGLM:
 
     def test_all_na_values(self):
         """Test handling of all NA values."""
-        df = pd.DataFrame({
-            "y": [np.nan, np.nan],
-            "T": [0, 1],
-            "country_EU": [0, 1],
-            "device_mobile": [0, 1],
-            "prior_views": [1, 2],
-            "user_id": [0, 1]
-        })
+        df = pd.DataFrame(
+            {
+                "y": [np.nan, np.nan],
+                "T": [0, 1],
+                "country_EU": [0, 1],
+                "device_mobile": [0, 1],
+                "prior_views": [1, 2],
+                "user_id": [0, 1],
+            }
+        )
 
         # The function checks for binary y before dropna, so it will fail on NaN
         with pytest.raises(ValueError, match="'y' must be binary"):
@@ -316,14 +312,16 @@ class TestMarginalEffectsATEandRR:
         # Create data with no treatment effect
         np.random.seed(42)
         n = 500
-        df = pd.DataFrame({
-            "user_id": np.arange(n),
-            "T": np.random.binomial(1, 0.5, n),
-            "country_EU": np.random.binomial(1, 0.5, n),
-            "device_mobile": np.random.binomial(1, 0.5, n),
-            "prior_views": np.random.poisson(3, n),
-            "y": np.random.binomial(1, 0.3, n)  # Independent of T
-        })
+        df = pd.DataFrame(
+            {
+                "user_id": np.arange(n),
+                "T": np.random.binomial(1, 0.5, n),
+                "country_EU": np.random.binomial(1, 0.5, n),
+                "device_mobile": np.random.binomial(1, 0.5, n),
+                "prior_views": np.random.poisson(3, n),
+                "y": np.random.binomial(1, 0.3, n),  # Independent of T
+            }
+        )
 
         _, df_model, res_robust = fit_binomial_glm(df, link="logit")
         ate_rd, rr, p_treated, p_control = marginal_effects_ate_and_rr(res_robust, df_model)
@@ -518,7 +516,7 @@ class TestABResults:
             n_obs=1000,
             n_users=500,
             robust_se_treat=0.02,
-            coef_treat=0.3
+            coef_treat=0.3,
         )
 
         assert results.link == "logit"
@@ -544,7 +542,7 @@ class TestABResults:
             n_obs=1000,
             n_users=500,
             robust_se_treat=None,
-            coef_treat=None
+            coef_treat=None,
         )
 
         assert results.robust_se_treat is None
@@ -559,13 +557,15 @@ class TestStatisticalCorrectness:
         # Create data with more variation to avoid perfect separation
         np.random.seed(42)
         n = 100
-        df = pd.DataFrame({
-            "user_id": np.arange(n),
-            "T": np.random.binomial(1, 0.5, n),
-            "country_EU": np.random.binomial(1, 0.5, n),
-            "device_mobile": np.random.binomial(1, 0.5, n),
-            "prior_views": np.random.poisson(3, n),
-        })
+        df = pd.DataFrame(
+            {
+                "user_id": np.arange(n),
+                "T": np.random.binomial(1, 0.5, n),
+                "country_EU": np.random.binomial(1, 0.5, n),
+                "device_mobile": np.random.binomial(1, 0.5, n),
+                "prior_views": np.random.poisson(3, n),
+            }
+        )
         # Generate outcome with some noise to avoid perfect separation
         logit = -2 + 0.5 * df["T"] + 0.2 * df["country_EU"]
         p = 1 / (1 + np.exp(-logit))
@@ -583,13 +583,15 @@ class TestStatisticalCorrectness:
         # Create data with strong positive treatment effect
         np.random.seed(42)
         n = 1000
-        df = pd.DataFrame({
-            "user_id": np.arange(n),
-            "T": np.random.binomial(1, 0.5, n),
-            "country_EU": np.random.binomial(1, 0.5, n),
-            "device_mobile": np.random.binomial(1, 0.5, n),
-            "prior_views": np.random.poisson(3, n),
-        })
+        df = pd.DataFrame(
+            {
+                "user_id": np.arange(n),
+                "T": np.random.binomial(1, 0.5, n),
+                "country_EU": np.random.binomial(1, 0.5, n),
+                "device_mobile": np.random.binomial(1, 0.5, n),
+                "prior_views": np.random.poisson(3, n),
+            }
+        )
         # Create outcome with positive treatment effect
         logit = -2 + 1.5 * df["T"] + 0.2 * df["country_EU"]
         p = 1 / (1 + np.exp(-logit))
@@ -611,20 +613,12 @@ class TestStatisticalCorrectness:
 
         # Fit with covariates
         formula_full = "y ~ T + country_EU + device_mobile + prior_views"
-        glm_full = sm.GLM.from_formula(
-            formula_full,
-            data=df,
-            family=sm.families.Binomial()
-        )
+        glm_full = sm.GLM.from_formula(formula_full, data=df, family=sm.families.Binomial())
         res_full = glm_full.fit()
 
         # Fit without covariates (T only)
         formula_simple = "y ~ T"
-        glm_simple = sm.GLM.from_formula(
-            formula_simple,
-            data=df,
-            family=sm.families.Binomial()
-        )
+        glm_simple = sm.GLM.from_formula(formula_simple, data=df, family=sm.families.Binomial())
         res_simple = glm_simple.fit()
 
         # Full model should have better fit (lower deviance)
@@ -683,14 +677,16 @@ class TestEdgeCases:
 
     def test_minimum_sample_size(self):
         """Test with minimum viable sample size."""
-        df = pd.DataFrame({
-            "user_id": [0, 1, 2, 3, 4, 5],
-            "T": [0, 0, 0, 1, 1, 1],
-            "country_EU": [0, 1, 0, 1, 0, 1],
-            "device_mobile": [0, 0, 1, 1, 0, 1],
-            "prior_views": [1, 2, 3, 1, 2, 3],
-            "y": [0, 0, 1, 1, 0, 1]
-        })
+        df = pd.DataFrame(
+            {
+                "user_id": [0, 1, 2, 3, 4, 5],
+                "T": [0, 0, 0, 1, 1, 1],
+                "country_EU": [0, 1, 0, 1, 0, 1],
+                "device_mobile": [0, 0, 1, 1, 0, 1],
+                "prior_views": [1, 2, 3, 1, 2, 3],
+                "y": [0, 0, 1, 1, 0, 1],
+            }
+        )
 
         # Should fit with minimum degrees of freedom
         _, df_model, res_robust = fit_binomial_glm(df)

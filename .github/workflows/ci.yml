@@ -31,6 +31,10 @@ jobs:
       with:
         poetry-version: '1.8.3'
 
+    - name: Bind Poetry to Python ${{ matrix.python-version }}
+      run: |
+        poetry env use ${{ matrix.python-version }}
+
     - name: Cache Poetry virtual environment
       uses: actions/cache@v4
       with:
@@ -74,6 +78,10 @@ jobs:
       with:
         poetry-version: '1.8.3'
 
+    - name: Bind Poetry to Python 3.11
+      run: |
+        poetry env use 3.11
+
     - name: Install dependencies
       run: |
         poetry install --with dev --no-interaction
@@ -101,6 +109,10 @@ jobs:
       with:
         poetry-version: '1.8.3'
 
+    - name: Bind Poetry to Python 3.11
+      run: |
+        poetry env use 3.11
+
     - name: Install dependencies
       run: |
         poetry install --with dev --no-interaction
@@ -123,6 +135,10 @@ jobs:
       uses: abatilo/actions-poetry@v4
       with:
         poetry-version: '1.8.3'
+
+    - name: Bind Poetry to Python 3.11
+      run: |
+        poetry env use 3.11
 
     - name: Install dependencies
       run: |
@@ -155,6 +171,10 @@ jobs:
       with:
         poetry-version: '1.8.3'
 
+    - name: Bind Poetry to Python 3.11
+      run: |
+        poetry env use 3.11
+
     - name: Install dependencies
       run: |
         poetry install --with dev --no-interaction
@@ -184,6 +204,10 @@ jobs:
       uses: abatilo/actions-poetry@v4
       with:
         poetry-version: '1.8.3'
+
+    - name: Bind Poetry to Python 3.11
+      run: |
+        poetry env use 3.11
 
     - name: Install dependencies
       run: |

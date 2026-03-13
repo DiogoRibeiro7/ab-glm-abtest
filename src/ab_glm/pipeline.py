@@ -117,9 +117,7 @@ def simulate_ab_data(
         p = 1.0 / (1.0 + np.exp(-eta_base))  # logistic to generate outcomes
         for _ in range(n_sessions):
             y = rng.binomial(1, p)
-            rows.append(
-                (i, T_user[i], country_EU[i], device_mobile[i], prior_views[i], y)
-            )
+            rows.append((i, T_user[i], country_EU[i], device_mobile[i], prior_views[i], y))
 
     df = pd.DataFrame(
         rows,
@@ -188,10 +186,7 @@ def fit_binomial_glm(
     )
 
     # Fit with cluster-robust covariance
-    res_robust = glm.fit(
-        cov_type="cluster",
-        cov_kwds={"groups": df_model[cluster_col].to_numpy()}
-    )
+    res_robust = glm.fit(cov_type="cluster", cov_kwds={"groups": df_model[cluster_col].to_numpy()})
 
     return glm, df_model, res_robust
 
