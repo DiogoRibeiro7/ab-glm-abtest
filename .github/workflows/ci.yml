@@ -31,9 +31,9 @@ jobs:
       with:
         poetry-version: '1.8.3'
 
-    - name: Bind Poetry to Python ${{ matrix.python-version }}
+    - name: Bind Poetry to active Python
       run: |
-        poetry env use ${{ matrix.python-version }}
+        poetry env use python
 
     - name: Cache Poetry virtual environment
       uses: actions/cache@v4
