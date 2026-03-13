@@ -105,21 +105,27 @@ def simulate_ab_data(
 
     # Vectorized session expansion to avoid Python-level nested loops.
     n_sessions_user = rng.integers(lo, hi + 1, size=n_users)
-    user_id = np.repeat(np.arange(n_users), n_sessions_user)
+    user_id = np.repeat(np.arange(n_users, dtype=np.int32), n_sessions_user)
 
     eta_base = (
         -2.0 + 0.20 * country_EU + 0.25 * device_mobile + 0.08 * prior_views + 0.35 * T_user + u
     )
     p_user = 1.0 / (1.0 + np.exp(-eta_base))  # logistic to generate outcomes
-    y = rng.binomial(1, p_user[user_id])
+    # Expand user-level features once; this is faster than repeated fancy indexing.
+    t_rep = np.repeat(T_user, n_sessions_user)
+    country_rep = np.repeat(country_EU, n_sessions_user)
+    mobile_rep = np.repeat(device_mobile, n_sessions_user)
+    views_rep = np.repeat(prior_views, n_sessions_user)
+    p_rep = np.repeat(p_user, n_sessions_user)
+    y = rng.binomial(1, p_rep)
 
     df = pd.DataFrame(
         {
             "user_id": user_id,
-            "T": T_user[user_id],
-            "country_EU": country_EU[user_id],
-            "device_mobile": device_mobile[user_id],
-            "prior_views": prior_views[user_id],
+            "T": t_rep,
+            "country_EU": country_rep,
+            "device_mobile": mobile_rep,
+            "prior_views": views_rep,
             "y": y,
         }
     )
