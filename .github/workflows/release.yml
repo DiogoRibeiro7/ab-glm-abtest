@@ -24,7 +24,7 @@ jobs:
       - name: Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
-          poetry-version: '1.8.3'
+          poetry-version: '2.3.2'
 
       - name: Install dependencies
         run: |
@@ -54,7 +54,7 @@ jobs:
       - name: Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
-          poetry-version: '1.8.3'
+          poetry-version: '2.3.2'
 
       - name: Install dependencies
         run: |
@@ -122,7 +122,7 @@ jobs:
       - name: Install Poetry
         uses: abatilo/actions-poetry@v4
         with:
-          poetry-version: '1.8.3'
+          poetry-version: '2.3.2'
 
       - name: Download artifacts
         uses: actions/download-artifact@v4
