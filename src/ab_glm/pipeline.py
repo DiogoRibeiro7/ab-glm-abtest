@@ -103,25 +103,25 @@ def simulate_ab_data(
     # Random intercept (user-level latent propensity)
     u = rng.normal(0.0, 0.5, size=n_users)
 
-    rows = []
-    for i in range(n_users):
-        n_sessions = rng.integers(lo, hi + 1)
-        eta_base = (
-            -2.0
-            + 0.20 * country_EU[i]
-            + 0.25 * device_mobile[i]
-            + 0.08 * prior_views[i]
-            + 0.35 * T_user[i]
-            + u[i]
-        )
-        p = 1.0 / (1.0 + np.exp(-eta_base))  # logistic to generate outcomes
-        for _ in range(n_sessions):
-            y = rng.binomial(1, p)
-            rows.append((i, T_user[i], country_EU[i], device_mobile[i], prior_views[i], y))
+    # Vectorized session expansion to avoid Python-level nested loops.
+    n_sessions_user = rng.integers(lo, hi + 1, size=n_users)
+    user_id = np.repeat(np.arange(n_users), n_sessions_user)
+
+    eta_base = (
+        -2.0 + 0.20 * country_EU + 0.25 * device_mobile + 0.08 * prior_views + 0.35 * T_user + u
+    )
+    p_user = 1.0 / (1.0 + np.exp(-eta_base))  # logistic to generate outcomes
+    y = rng.binomial(1, p_user[user_id])
 
     df = pd.DataFrame(
-        rows,
-        columns=["user_id", "T", "country_EU", "device_mobile", "prior_views", "y"],
+        {
+            "user_id": user_id,
+            "T": T_user[user_id],
+            "country_EU": country_EU[user_id],
+            "device_mobile": device_mobile[user_id],
+            "prior_views": prior_views[user_id],
+            "y": y,
+        }
     )
     return df
 
