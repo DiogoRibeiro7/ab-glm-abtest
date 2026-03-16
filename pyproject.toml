@@ -34,7 +34,7 @@ black = ">=24.0,<25.0"
 isort = ">=5.13,<6.0"
 jupyter = ">=1.0,<2.0"
 notebook = ">=7.0,<8.0"
-ipykernel = ">=6.28,<7.0"
+ipykernel = ">=6.28,<8.0"
 
 [tool.ruff]
 line-length = 100
